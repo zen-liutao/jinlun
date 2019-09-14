@@ -1,10 +1,11 @@
 # -*- coding: UTF-8 -*-
 
 import sys
-
 from openpyxl import load_workbook
 from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Alignment
-import chardet
+
+
+# import chardet
 from datetime import datetime, timedelta
 
 
@@ -176,21 +177,24 @@ def writeSheet(data, wb):
     sheet = wb.worksheets[2]
     ws2 = wb.create_sheet("工时计算表", 0)   
     attendance_date = extract_month(sheet['C3'].value)
-    ws2['a1'] = '常州市金轮塑业有限公司 考勤表{}年{}月'.format(
-        str(attendance_date.year), str(attendance_date.month))
+    ws2['a1'] = '常州市金轮塑业有限公司 考勤表{}年{}月'.format(str(attendance_date.year), str(attendance_date.month))
     ws2['a2'] = '日期/姓名'
     ws2['a2'].alignment = Alignment(horizontal="center", vertical="center")
 
     # 输入日期
     days = [day.split("-")[1]
             for day in data['顾伟文'].keys() if day != 'late_times']
+
+    ws2.merge_cells(start_row=1, start_column=1, end_row=1, end_column=3+len(days)*2)
+    ws2['a1'].alignment = Alignment(horizontal="center", vertical="center")
     i = 0
     for day in days:
-        ws2.cell(row=2, column=2 + i, value=day)
+        ws2.cell(row=2, column=2+2*i, value=day)
+        ws2.merge_cells(start_row=2, start_column=2+2*i, end_row=2,end_column=3+2*i)
         # ws.merge_cells(start_row=2, start_column=2 + i, end_row=2, end_column=4 + i)
         i += 1
-    ws2.cell(row=2, column=3 + len(days), value="合计")
-    ws2.cell(row=2, column=4 + len(days), value="迟到次数")
+    ws2.cell(row=2, column=2 + len(days)*2, value="合计")
+    ws2.cell(row=2, column=3 + len(days)*2, value="迟到次数")
 
     names = data.keys()
     i = 0
@@ -199,15 +203,22 @@ def writeSheet(data, wb):
         ws2.cell(row=3+i, column=1, value=name)
         i += 1
         employee_attendance = data[name]
+        total_work_hours = 0
         j = 1
         for day in days:
             work_hours = employee_attendance[day].get("work_hours", 0)
-            if type(work_hours) is float :
+            raw_work_hours = employee_attendance[day].get("raw_work_hours", 0)
+            if type(work_hours) is float or type(work_hours) is int:
                 work_hours = work_hours / 8
-            ws2.cell(row=3+i, column=1+j, value = work_hours)
-            j += 1
-        ws2.cell(row=3+i, column=4 + len(days),
-                 value=employee_attendance['late_times'])
+                total_work_hours += work_hours
+            else:
+                ws2.cell(row=2+i, column=2+j).fill = PatternFill(fgColor="FF0000", fill_type = "solid")
+            ws2.cell(row=2+i, column=1+j, value=raw_work_hours)
+            ws2.cell(row=2+i, column=1+j).alignment = Alignment(wrapText=True)
+            ws2.cell(row=2+i, column=2+j, value=work_hours)
+            j += 2
+        ws2.cell(row=2+i, column=3 + len(days)*2, value=employee_attendance['late_times'])
+        ws2.cell(row=2+i, column=2 + len(days)*2, value=total_work_hours)
 
 
 def main():
@@ -217,8 +228,8 @@ def main():
     # for i in range(1, len(sys.argv)):
     #     print('参数 %s 为: %s' %(i, sys.argv[i]))
     # 从命令行获取excel文件路径
-    # file_path = sys.argv[1]
-    wb = load_workbook("05汇总表.xlsx")
+    file_path = sys.argv[1]
+    # wb = load_workbook("05汇总表.xlsx")
     sheet = wb.worksheets[2]
     d = compute(sheet)
     writeSheet(d, wb)
