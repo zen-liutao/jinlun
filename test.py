@@ -8,6 +8,9 @@ from openpyxl.styles import Border, Side, PatternFill, Font, GradientFill, Align
 # import chardet
 from datetime import datetime, timedelta
 
+# 读取
+READ_PAGE_INDEX = 0
+
 
 # 默认在表格c3位置 格式:2019/03/01 ~ 03/31	( 常州市金轮塑业 )
 def extract_month(text):
@@ -174,7 +177,7 @@ def compute(sheet):
 
 # 把数据写入到新的表格中去
 def writeSheet(data, wb):
-    sheet = wb.worksheets[2]
+    sheet = wb.worksheets[READ_PAGE_INDEX]
     ws2 = wb.create_sheet("工时计算表", 0)   
     attendance_date = extract_month(sheet['C3'].value)
     ws2['a1'] = '常州市金轮塑业有限公司 考勤表{}年{}月'.format(str(attendance_date.year), str(attendance_date.month))
